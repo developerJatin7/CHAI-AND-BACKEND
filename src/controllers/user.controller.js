@@ -120,12 +120,6 @@ const registerUser = asyncHandler(async (req, res) => {
     res.status(201).json(
         new ApiResponse(200, createdUser, "User registered successfully")
     )
-
-
-
-
-
-
 })
 
 const loginUser = asyncHandler(async (req, res) => {
@@ -224,9 +218,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     if (!incomingRefreshToken) {
         throw new ApiError(401, "unauthorized request")
     }
-
+   try {
     const decodedToken = jwt.verify(
-        incomningRefreshToken,
+        incomingRefreshToken,
         process.env.REFRESH_TOKEN_SECRET
     )
 
@@ -235,7 +229,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Invalid refresh token")
     }
 
-    try {
+    
         if (incomingRefreshToken !== user?.refreshToken) {
             throw new ApiError(401, "Refresh token is expired or used")
         }
@@ -254,7 +248,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
                 new ApiResponse(
                     200,
                     {
-                        accessToken, refreshToken: newRefreshToken
+                        accessToken, 
+                        refreshToken
                     },
                     "Access token refreshed successfully"
                 )
