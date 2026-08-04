@@ -1,9 +1,10 @@
 import { asyncHandler } from '../utils/asynchandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { User } from '../models/user.model.js';
-import { uploadOnCloudinary } from '../utils/cloudinary.js';
+import { uploadOnCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import jwt from 'jsonwebtoken';
+ 
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -94,7 +95,7 @@ const registerUser = asyncHandler(async (req, res) => {
         coverImage = await uploadOnCloudinary(coverImageLocalPath);
     }
 
-    if (!avatar) {
+    if (!avatar?.url) {
         throw new ApiError(500, "Error uploading avatar to cloudinary");
     }
 
@@ -328,8 +329,13 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     }
 
     const avatar = await uploadOnCloudinary(avatarLocalPath);
-    if(!avatar.url){
+    if(!avatar?.url){
         throw new ApiError(500, "Error uploading avatar to cloudinary")
+    }
+
+    const oldAvatarUrl = req.user?.avatar
+    if(oldAvatarUrl){
+        await deleteFromCloudinary(oldAvatarUrl)
     }
 
     const user = await User.findByIdAndUpdate(
@@ -362,8 +368,13 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     }
 
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
-    if(!coverImage.url){
+    if(!coverImage?.url){
         throw new ApiError(500, "Error uploading cover image to cloudinary")
+    }
+
+    const oldCoverImageUrl = req.user?.coverImage
+    if(oldCoverImageUrl){
+        await deleteFromCloudinary(oldCoverImageUrl)
     }
 
     const user = await User.findByIdAndUpdate(
