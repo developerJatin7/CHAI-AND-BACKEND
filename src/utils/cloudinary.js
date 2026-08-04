@@ -26,5 +26,37 @@ const uploadOnCloudinary = async (localFilePath) => {
         return null;
     }
 }
+
+const deleteFromCloudinary = async (publicIdOrUrl) => {
+    try {
+        if (!publicIdOrUrl) return null;
+
+        cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET
+        });
+
+        let publicId = publicIdOrUrl;
+
+        if (publicIdOrUrl.includes("cloudinary.com")) {
+            const urlParts = publicIdOrUrl.split("/");
+            const uploadIndex = urlParts.indexOf("upload");
+
+            if (uploadIndex !== -1) {
+                publicId = urlParts.slice(uploadIndex + 1).join("/");
+                publicId = publicId.replace(/^v\d+\//, "");
+                publicId = publicId.replace(/\.[^.]+$/, "");
+            }
+        }
+
+        return await cloudinary.uploader.destroy(publicId, {
+            resource_type: "image",
+        });
+    } catch (error) {
+        console.log("error deleting file from cloudinary", error);
+        return null;
+    }
+}
     
-export { uploadOnCloudinary };
+export { uploadOnCloudinary, deleteFromCloudinary };
