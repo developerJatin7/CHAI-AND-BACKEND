@@ -402,7 +402,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
     const { username } = req.params;
-    if (username?.trim()) {
+    if (!username?.trim()) {
         throw new ApiError(400, "Username is missing")
     }
 
@@ -412,7 +412,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "Subscription",
+                from: "subscriptions",
                 localField: "_id",
                 foreignField: "Channel",
                 as: "subscribers"
@@ -420,7 +420,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "Subscription",
+                from: "subscriptions",
                 localField: "_id",
                 foreignField: "subscriber",
                 as: "subscribedto"
@@ -434,7 +434,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 channelSubscribedToCount: {
                     $size: "$subscribedto"
                 },
-                $isSubscribed: {
+                isSubscribed: {
                     $cond: {
                         if: {$in: [req.user?._id, "$subscribers.subscriber"]},
                         then: true,
@@ -468,6 +468,60 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             200,
             channel[0],
             "User channel fetched Successfully"
+        )
+    )
+})
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+    const user = await User.aggregate([
+        {
+            $match: { 
+                _id: req.user?._id
+             }
+        },
+        {
+            lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchhistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                },
+                                {
+                                    $addFields: {
+                                        owner: {
+                                            $first: "$owner"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+
+    ])
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user[0],
+            "Watch history fetched successfully"
         )
     )
 })
