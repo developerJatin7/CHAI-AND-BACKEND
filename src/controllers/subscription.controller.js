@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { asyncHandler } from "../utils/asynchandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Subscription } from "../models/subscription.model.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -89,7 +89,7 @@ const getSubscribersCount = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid channel id");
     }
 
-    const channel = await User.findById(channelid);
+    const channel = await User.findById(channelId);
     if (!channel) {
         throw new ApiError(404, "Channel not found");
     }
@@ -106,6 +106,50 @@ const getSubscribersCount = asyncHandler(async (req, res) => {
             );
     }
 
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { count: subscribersCount },
+                "Subscribers count fetched successfully"
+            )
+        );
+
+})
+
+
+const getSubscribedChannels = asyncHandler(async (req, res) => {
+    const subscriberId = req.user?._id;
+
+    if (!subscriberId) {
+        throw new ApiError(400, "Subscriber id is required");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(subscriberId)) {
+        throw new ApiError(400, "Invalid subscriber id");
+    }
+
+    const subscriptions = await Subscription.find({ subscriber: subscriberId })
+        .populate("channel", "username fullName avatar coverImage")
+        .sort({ createdAt: -1 });
+
+    const channels = subscriptions
+        .filter((item) => item.channel)
+        .map((item) => item.channel);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    totalSubscribedChannels: channels.length,
+                    channels
+                },
+                "Subscribed channels fetched successfully"
+            )
+        );
 })
 
 
@@ -113,7 +157,8 @@ const getSubscribersCount = asyncHandler(async (req, res) => {
 export {
     subscribeToChannel,
     unsubscribeFromChannel,
-    getSubscribersCount
+    getSubscribersCount,
+    getSubscribedChannels
 };
 
 
